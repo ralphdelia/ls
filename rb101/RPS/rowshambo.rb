@@ -8,7 +8,7 @@ def validate_choice?(letters)
   valid
 end
 
-def letter_to_string(letter) 
+def letter_to_string(letter)
   word = ""
   VALID_CHOICES.each do |element|
     word = element if element[0] == letter || element[0..1] == letter
@@ -20,15 +20,13 @@ def prompt(message)
   puts "=> #{message}"
 end
 
-
 def win?(first, second)
-  win_index = {
-            'lizard' => ['spock', 'paper'], 
-            'spock' => ['rock', 'scissors'],
-            'rock' => ['lizard', 'scissors'],
-            'paper' => ['spock', 'rock'],
-            'scissors' => ['lizard', 'paper']
-            }
+  win_index = { 'lizard' => ['spock', 'paper'],
+                'spock' => ['rock', 'scissors'],
+                'rock' => ['lizard', 'scissors'],
+                'paper' => ['spock', 'rock'],
+                'scissors' => ['lizard', 'paper'] }
+
   first_defeats = win_index[first]
   first_defeats.include?(second)
 end
@@ -52,12 +50,13 @@ def update_match(score, player, computer)
 end
 
 def display_match(score)
-  prompt("You have #{score[:player]} points, the computer has #{score[:computer]} points.")
+  prompt("You have #{score[:player]} points,
+  the computer has #{score[:computer]} points.")
 end
 
 loop do
   choice = ""
-  score = {player: 0, computer: 0}
+  score = { player: 0, computer: 0 }
   loop do
     loop do
       prompt("Choose one: #{VALID_CHOICES.join(', ')}")
@@ -72,20 +71,23 @@ loop do
 
     choice = letter_to_string(choice)
     choice_computer = VALID_CHOICES.sample
-    
+
     puts "You chose #{choice}; Computer chose: #{choice_computer}"
     display_results(choice, choice_computer)
 
     update_match(score, choice, choice_computer)
     display_match(score)
 
-    winner = score.select { |_, score| score >= 3 }
-    
+    winner = score.select { |_, value| value >= 3 }
+
     if !winner.empty?
       winner = winner.keys[0].to_s
-      prompt( winner == "player" ? "You Won the match!" : "The computer won the match!" )      
-      break
-    end 
+      if winner == 'player'
+        prompt('You wont the match!')
+      elsif winner == 'computer'
+        prompt('The computer won the match!')
+      end
+    end
   end
 
   prompt("Do you want to play again?")
