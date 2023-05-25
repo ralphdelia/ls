@@ -68,14 +68,14 @@ end
 def display_current(score)
   puts '-' * 51
   puts "***You have #{score[:player]} points, the computer has" \
-       "#{score[:computer]} points.***"
+       " #{score[:computer]} points.***"
   puts '-' * 51
 end
 
 def display_match(winner)
   winner = winner.keys[0].to_s
   if winner == 'player'
-    prompt('You wont the match!')
+    prompt('You won the match!')
   elsif winner == 'computer'
     prompt('The computer won the match!')
   end
@@ -107,7 +107,9 @@ loop do
   loop do
     choice = prompt_choice
     computer_choice = VALID_CHOICES.sample
-
+    
+    system 'clear'
+    puts '-' * 51
     puts "You chose #{choice}; Computer chose: #{computer_choice}".center(51)
     display_results(choice, computer_choice)
 
