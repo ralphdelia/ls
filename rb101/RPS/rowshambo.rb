@@ -20,19 +20,17 @@ def prompt(message)
   puts "=> #{message}"
 end
 
+
 def win?(first, second)
-  case first
-  when 'rock'
-    second == "lizard" || second == "scissors"
-  when 'paper'
-    second == "spock" || second == 'rock'
-  when 'scissors'
-    second == 'lizard' || second == 'paper'
-  when 'spock'
-    second == 'rock' || second == 'scissors'
-  when 'lizard'
-    second == 'spock' || second == 'paper'
-  end
+  win_index = {
+            'lizard' => ['spock', 'paper'], 
+            'spock' => ['rock', 'scissors'],
+            'rock' => ['lizard', 'scissors'],
+            'paper' => ['spock', 'rock'],
+            'scissors' => ['lizard', 'paper']
+            }
+  first_defeats = win_index[first]
+  first_defeats.include?(second)
 end
 
 def display_results(player, computer)
