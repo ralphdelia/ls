@@ -15,7 +15,8 @@ def prompt_choice
   choice = ''
   loop do
     prompt("Choose one: #{VALID_CHOICES.join(', ')}")
-    prompt('You have the option to select either the full name or use the abbreviations l, sp, r, p, or sc.')
+    prompt('You have the option to select either the full name or use the' \
+           'abbreviations l, sp, r, p, or sc.')
     choice = gets.chomp
 
     break if VALID_CHOICES.include?(choice)
@@ -66,7 +67,8 @@ end
 
 def display_current(score)
   puts '-' * 51
-  puts "***You have #{score[:player]} points, the computer has #{score[:computer]} points.***"
+  puts "***You have #{score[:player]} points, the computer has" \
+       "#{score[:computer]} points.***"
   puts '-' * 51
 end
 
