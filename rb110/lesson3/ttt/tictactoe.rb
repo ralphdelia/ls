@@ -18,7 +18,8 @@ end
 
 def display_board(brd)
   system 'clear'
-  puts "You are a #{PLAYER_MARKER}, the computer is a #{COMPUTER_MARKER}".center(42)
+  puts "You are a #{PLAYER_MARKER}, the computer " \
+       "is a #{COMPUTER_MARKER}".center(42)
   puts ""
   puts "     |     |     ".center(42)
   puts "  #{brd[1]}  |  #{brd[2]}  |  #{brd[3]}  ".center(42)
@@ -60,42 +61,39 @@ def select_unmarked_position(line, board)
   line.select { |num| board[num] == " " }.first
 end
 
-def detect_threat(brd, line)
-  if brd.values_at(*line).count(PLAYER_MARKER) == 2 &&
-     brd.values_at(*line).count(COMPUTER_MARKER) == 0
-    return select_unmarked_position(line, brd)
+def detect_defensive_placement(brd)
+  WINNING_LINES.each do |line|
+    if brd.values_at(*line).count(PLAYER_MARKER) == 2 &&
+       brd.values_at(*line).count(COMPUTER_MARKER) == 0
+      return select_unmarked_position(line, brd)
+    end
   end
   nil
 end
 
-def detect_winning_placement(brd, line)
-  if brd.values_at(*line).count(COMPUTER_MARKER) == 2 &&
-     brd.values_at(*line).count(" ") == 1
-    select_unmarked_position(line, brd)
+def detect_winning_placement(brd)
+  WINNING_LINES.each do |line|
+    if brd.values_at(*line).count(COMPUTER_MARKER) == 2 &&
+       brd.values_at(*line).count(INITIAL_MARKER) == 1
+      return select_unmarked_position(line, brd)
+    end
   end
+  nil
+end
+
+def detect_center_square(brd)
+  5 if brd[5] == INITIAL_MARKER
+end
+
+def random_square(brd)
+  empty_squares(brd).sample
 end
 
 def computer_places_piece!(brd)
-  square = nil
-  WINNING_LINES.each do |line|
-    square = detect_winning_placement(brd, line)
-    break if square
-  end
-
-  if !square
-    WINNING_LINES.each do |line|
-      square = detect_threat(brd, line)
-      break if square
-    end
-  end
-
-  if !square && brd[5] == " "
-    square = 5
-  end
-
-  if !square
-    square = empty_squares(brd).sample
-  end
+  square = detect_winning_placement(brd) ||
+           detect_defensive_placement(brd) ||
+           detect_center_square(brd) ||
+           random_square(brd)
 
   brd[square] = COMPUTER_MARKER
 end
@@ -176,7 +174,7 @@ def determine_first_player
   first_player = ''
   system 'clear'
   loop do
-    prompt "Who should go first, player or computer?" /
+    prompt "Who should go first, player or computer? " \
            "(Enter 'pass' to let the computer choose): "
     first_player = gets.chomp
     first_player = first_player.downcase
