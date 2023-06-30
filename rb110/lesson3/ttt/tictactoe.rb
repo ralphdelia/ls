@@ -14,6 +14,7 @@ def fancy_display
   puts '\ \/ / _ \ \/ / _ \ '.center(42)
   puts ' >  < (_) >  < (_)|'.center(42)
   puts '/_/\_\___/_/\_\___/ '.center(42)
+  puts ''
 end
 
 def display_board(brd)
@@ -213,7 +214,6 @@ def alternate_player(current_player)
 end
 
 start_screen
-
 loop do
   current_player = determine_first_player
   score = { player: 0, computer: 0 }
@@ -242,6 +242,7 @@ loop do
     continue?
   end
   system 'clear'
+  fancy_display
   display_current(score)
   prompt "The winner of the match is #{detect_match_winner(score)}!"
   continue?
