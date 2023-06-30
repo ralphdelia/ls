@@ -1,5 +1,3 @@
-require 'pry'
-
 INITIAL_MARKER = ' '
 PLAYER_MARKER = 'X'
 COMPUTER_MARKER = '0'
@@ -12,10 +10,10 @@ def prompt(msg)
 end
 
 def fancy_display
- puts '__  _______  _____ '.center(42) 
- puts '\ \/ / _ \ \/ / _ \ '.center(42)
- puts  ' >  < (_) >  < (_)|'.center(42)
- puts '/_/\_\___/_/\_\___/ '.center(42)
+  puts '__  _______  _____ '.center(42)
+  puts '\ \/ / _ \ \/ / _ \ '.center(42)
+  puts ' >  < (_) >  < (_)|'.center(42)
+  puts '/_/\_\___/_/\_\___/ '.center(42)
 end
 
 def display_board(brd)
@@ -58,8 +56,47 @@ def player_places_piece!(brd)
   brd[square] = PLAYER_MARKER
 end
 
+def select_unmarked_position(line, board)
+  line.select { |num| board[num] == " " }.first
+end
+
+def detect_threat(brd, line)
+  if brd.values_at(*line).count(PLAYER_MARKER) == 2 &&
+     brd.values_at(*line).count(COMPUTER_MARKER) == 0
+    return select_unmarked_position(line, brd)
+  end
+  nil
+end
+
+def detect_winning_placement(brd, line)
+  if brd.values_at(*line).count(COMPUTER_MARKER) == 2 &&
+     brd.values_at(*line).count(" ") == 1
+    select_unmarked_position(line, brd)
+  end
+end
+
 def computer_places_piece!(brd)
-  square = empty_squares(brd).sample
+  square = nil
+  WINNING_LINES.each do |line|
+    square = detect_winning_placement(brd, line)
+    break if square
+  end
+
+  if !square
+    WINNING_LINES.each do |line|
+      square = detect_threat(brd, line)
+      break if square
+    end
+  end
+
+  if !square && brd[5] == " "
+    square = 5
+  end
+
+  if !square
+    square = empty_squares(brd).sample
+  end
+
   brd[square] = COMPUTER_MARKER
 end
 
@@ -101,13 +138,13 @@ def joinor(arr, delimiter=', ', word='or')
   end
 end
 
-def continue? 
-  loop do 
+def continue?
+  loop do
     prompt "---------------------------------------"
     prompt ""
     prompt "type 'start' to begin or 'exit' to quit"
     answer = gets.chomp.downcase
-    
+
     if answer == 'start'
       break
     elsif answer == 'exit'
@@ -120,39 +157,76 @@ end
 
 def display_current(score)
   prompt "The score is Player: #{score[:player]} Computer: #{score[:computer]}"
-end 
+end
 
 def detect_match_winner(score)
   if score[:player] == 5
-    return 'Player'  
+    return 'Player'
   elsif score[:computer] == 5
     return 'Computer'
   end
-  nil 
+  nil
 end
 
-loop do 
+def validate_answer(answer)
+  return true if answer == 'player' || answer == 'computer'
+end
+
+def determine_first_player
+  first_player = ''
   system 'clear'
-  fancy_display
-  puts ''
-  puts "Hello and welcome to Tic Tac Toe.".center(42)
-  puts "Lets play best out of five!".center(42)
-    
-  break if continue?
+  loop do
+    prompt "Who should go first, player or computer?" /
+           "(Enter 'pass' to let the computer choose): "
+    first_player = gets.chomp
+    first_player = first_player.downcase
+
+    first_player = ['player', 'computer'].sample if first_player == 'pass'
+
+    break if validate_answer(first_player)
+    prompt "Invalid input. Please enter 'player', 'computer' or 'pass'."
+  end
+  first_player
 end
 
-  loop do 
-  score = {player: 0, computer: 0}
+def start_screen
+  loop do
+    system 'clear'
+    fancy_display
+    puts ''
+    puts "Hello and welcome to Tic Tac Toe.".center(42)
+    puts "Lets play best out of five!".center(42)
+
+    break if continue?
+  end
+end
+
+def place_piece!(board, current_player)
+  if current_player == 'player'
+    player_places_piece!(board)
+  elsif current_player == 'computer'
+    computer_places_piece!(board)
+  end
+end
+
+def alternate_player(current_player)
+  return 'computer' if current_player == 'player'
+  return 'player' if current_player == 'computer'
+end
+
+start_screen
+
+loop do
+  current_player = determine_first_player
+  score = { player: 0, computer: 0 }
+
   loop do
     board = initialize_board
 
     loop do
       display_board(board)
-
-      player_places_piece!(board)
-      break if someone_won?(board) || board_full?(board)
-
-      computer_places_piece!(board)
+      place_piece!(board, current_player)
+      current_player = alternate_player(current_player)
       break if someone_won?(board) || board_full?(board)
     end
 
@@ -163,16 +237,14 @@ end
     else
       prompt "It's a tie!"
     end
-    
+
     increment_score(board, score)
     display_current(score)
-
     break if !!detect_match_winner(score)
     continue?
   end
   system 'clear'
   display_current(score)
   prompt "The winner of the match is #{detect_match_winner(score)}!"
-  continue? 
+  continue?
 end
-
