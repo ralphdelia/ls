@@ -1,5 +1,55 @@
+require 'pry'
+
+def start_screen
+  system 'clear'
+  lines = [
+    "┌─────────┐┌─────────┐",
+    "│2        ││1        │",
+    "│         ││         │",
+    "│         ││         │",
+    "│    ♥    ││    ♥    │",
+    "│         ││         │",
+    "│         ││         │",
+    "│        2││        1│",
+    "└─────────┘└─────────┘",
+    " Welcome to Twenty-One"
+  ]
+  lines.each do |line|
+    puts line.center(42)
+  end
+
+  str = ''
+  12.times do
+    str << "--"
+    system 'clear'
+    lines.each do |line|
+      puts line.center(42)
+    end
+    puts str.center(42)
+    sleep(0.1)
+  end
+  
+  12.times do
+    str.slice!(-2, 2)
+    system 'clear'
+    lines.each do |line|
+      puts line.center(42)
+    end
+    puts str.center(42)
+    sleep(0.1)
+  end
+end
+
 def prompt(msg)
   puts '=> ' + msg
+end
+
+def joinor(arr)
+  if arr.size == 2 
+     arr.join(" and ")
+  else
+    "#{arr[0..-2].join(', ')}, and #{arr.last}"
+  end
 end
 
 def continue?
@@ -31,6 +81,15 @@ def initialize_deck
   deck
 end
 
+
+def hit!(hand, deck)
+  1.times do
+    card = deck.delete(deck.sample)
+    hand.push(card.last)
+  end
+  hand
+end
+
 def deal_hand!(deck)
   arr = []
   2.times do
@@ -40,70 +99,164 @@ def deal_hand!(deck)
   arr
 end
 
-def display_hands(player, dealer)
-  system 'clear'
-  prompt "Dealer has: #{dealer.first} and unknown card"
-  prompt "You have: #{player.first} and #{player.last}"
+def boarder
+  puts "#{'-' * 42}"
 end
 
-def calculate_hand(hand)
-  hand = hand.map do |element|
+
+def display_hands(player, dealer)
+  boarder
+  prompt "Dealer has: #{dealer.first} and unknown card"
+  prompt "You have: #{joinor(player)}"
+end
+
+def display_final_hand(player, dealer)
+  prompt "Dealer has: #{joinor(dealer)}"
+  prompt "You have: #{joinor(player)}"
+end
+
+
+def return_non_ace_values(hand)
+  hand.map do |element|
     if element.to_i.to_s == element
       element.to_i
     elsif %w(jack queen king).include?(element)
       10
+    else
+      element
     end
-    element
   end
-  # add in other value, sort out greater than 21 find max
+end
+
+def calculate_ace_combinations(number) 
+  values = [1, 11]
+  combinations = []
+  values.repeated_combination(number) {|combination| combinations.push(combination)}
+  sums = combinations.map { |arr| arr.reduce(:+) }
+  sorted_sums = sums.sort {|a, b| b <=> a}
+  sorted_sums
+end
+
+def initialize_ace_index
+  combinations = {}
+  [1, 2, 3, 4].each do |element| 
+    combinations[element] = calculate_ace_combinations(element)
+  end
+  combinations 
+end
+
+def calculate_ace_value(hand_value, number_of_aces)
+  ace_combination_index = initialize_ace_index
+  ace_values = ace_combination_index[number_of_aces]
+  summed_hand_values = ace_values.map { |value| value + hand_value }
+  valid_hand_values = summed_hand_values.select { |values| values <= 21 }
+  valid_hand_values.max
+end
+
+def calculate_hand(hand)
+  hand = return_non_ace_values(hand)
+  
+  if hand.include?('ace')
+    aces, integers = hand.partition {|card| card == 'ace'}
+    return calculate_ace_value(integers.sum, aces.size)
+  end 
 
   hand.reduce(:+)
 end
 
-deck = initialize_deck()
+def return_winner(player, dealer)
+  player = calculate_hand(player)
+  dealer = calculate_hand(dealer)
+  
+end
 
-loop do 
-  system 'clear'
-  puts "Hello and welcome to the game."
+def valid_answer?(answer)
+  answer == 'stay' || answer == 'hit'
+end
+
+def hit_or_stay
+  answer = ''
+  loop do
+    boarder
+    puts "hit or stay?".center(42)
+    boarder
+    answer = gets.chomp.downcase
+   
+    break if valid_answer?(answer)
+    prompt "Thats not a valid answer."
+  end
+  answer
+end
+
+def busted?(player)
+ calculate_hand(player) > 21
+end
+
+
+def player_turn(player_hand, dealer_hand, deck)
+  loop do
+    answer = hit_or_stay
+    
+    hit!(player_hand, deck) if answer == 'hit'
+    
+    display_hands(player_hand, dealer_hand)
+    break if answer == 'stay' || busted?(player_hand)  
+  end
+end
+
+def dealer_turn(dealer_hand, player_hand, deck)
+  loop do 
+    prompt "Dealers turn..."
+    sleep(1)
+    comp_hand_value = calculate_hand(dealer_hand)
+
+    hit!(dealer_hand, deck) if comp_hand_value < 17
+    
+    break if comp_hand_value >= 17 ||busted?(dealer_hand)
+  end
+end
+
+def tie?(results)
+  results[:player] == results[:dealer] ||
+  results[:player] > 21 && results[:dealer] > 21
+end
+
+def return_winner(results)
+  return 'tie' if tie?(results)
+
+  valid_results = results.select{ |k, v| v <= 21 }
+  highest_hand = valid_results.max_by { |_, v| v }
+  highest_hand.first.to_s
+end
+
+def display_match(winner)
+  if winner == 'tie'
+    puts "Its a draw!"
+  else 
+    puts "#{winner} won!"
+  end
+end
+
+
+loop do
+  start_screen 
   break if continue?
 end
 
 loop do 
-
+  deck = initialize_deck
   player_hand = deal_hand!(deck)
   dealer_hand = deal_hand!(deck)
   display_hands(player_hand, dealer_hand)
+
+  player_turn(player_hand, dealer_hand, deck)
+  dealer_turn(dealer_hand, player_hand, deck)
   
-  p calculate_hand(player_hand) 
+
+  display_final_hand(player_hand, dealer_hand)
+  final_results = {player: calculate_hand(player_hand), 
+                   dealer: calculate_hand(dealer_hand)}
+  winner = return_winner(final_results)
+  display_match(winner)
   break
 end
-
-
-
-=begin
-The values of the aces should be responsive to new additions
-8 ace ace should output 20
-
-calculate highest sum
-
-to do 
-  add in other value
-  sort out greater than 21
-  find max
-
-
-determine which one is closest to 21
-greatest value thats less than 21
-
-
-
-
-
-
-
-hit - add a new element to the hands array
-calcualte again
-winner
-
-
-=end
