@@ -1,21 +1,21 @@
 require 'pry'
+LINES = [
+  "┌─────────┐┌─────────┐",
+  "│2        ││1        │",
+  "│         ││         │",
+  "│         ││         │",
+  "│    ♥    ││    ♥    │",
+  "│         ││         │",
+  "│         ││         │",
+  "│        2││        1│",
+  "└─────────┘└─────────┘",
+  " Welcome to Twenty-One",
+  "Lets see who can reach three wins first."
+]
 
 def start_screen
   system 'clear'
-  lines = [
-    "┌─────────┐┌─────────┐",
-    "│2        ││1        │",
-    "│         ││         │",
-    "│         ││         │",
-    "│    ♥    ││    ♥    │",
-    "│         ││         │",
-    "│         ││         │",
-    "│        2││        1│",
-    "└─────────┘└─────────┘",
-    " Welcome to Twenty-One",
-    "Lets see who can reach three wins first."
-  ]
-  lines.each do |line|
+  LINES.each do |line|
     puts line.center(42)
   end
 
@@ -23,17 +23,7 @@ def start_screen
   12.times do
     str << "--"
     system 'clear'
-    lines.each do |line|
-      puts line.center(42)
-    end
-    puts str.center(42)
-    sleep(0.1)
-  end
-  
-  12.times do
-    str.slice!(-2, 2)
-    system 'clear'
-    lines.each do |line|
+    LINES.each do |line|
       puts line.center(42)
     end
     puts str.center(42)
@@ -42,12 +32,12 @@ def start_screen
 end
 
 def prompt(msg)
-  puts '=> ' + msg
+  puts "=> #{msg}"
 end
 
 def joinor(arr)
-  if arr.size == 2 
-     arr.join(" and ")
+  if arr.size == 2
+    arr.join(" and ")
   else
     "#{arr[0..-2].join(', ')}, and #{arr.last}"
   end
@@ -83,11 +73,8 @@ def initialize_deck
 end
 
 def hit!(hand, deck)
-  1.times do
-    card = deck.delete(deck.sample)
-    hand.push(card.last)
-  end
-  hand
+  card = deck.delete(deck.sample)
+  hand.push(card.last)
 end
 
 def deal_hand!(deck)
@@ -100,9 +87,8 @@ def deal_hand!(deck)
 end
 
 def boarder
-  puts "#{'-' * 42}"
+  puts '-' * 42
 end
-
 
 def display_hands(player, dealer)
   boarder
@@ -114,7 +100,7 @@ def display_final_hand(player, dealer)
   prompt "Dealer has: #{joinor(dealer)}"
   prompt "You have: #{joinor(player)}"
   puts 'Dealer busted!'.center(42) if busted?(dealer)
-  puts 'You busted!'.center(42) if busted?(player)  
+  puts 'You busted!'.center(42) if busted?(player)
 end
 
 def return_non_ace_values(hand)
@@ -129,21 +115,22 @@ def return_non_ace_values(hand)
   end
 end
 
-def calculate_ace_combinations(number) 
+def calculate_ace_combinations(number)
   values = [1, 11]
   combinations = []
-  values.repeated_combination(number) {|combination| combinations.push(combination)}
+  values.repeated_combination(number) do |combination|
+    combinations.push(combination)
+  end
   sums = combinations.map { |arr| arr.reduce(:+) }
-  sorted_sums = sums.sort {|a, b| b <=> a}
-  sorted_sums
+  sums.sort { |a, b| b <=> a }
 end
 
 def initialize_ace_index
   combinations = {}
-  [1, 2, 3, 4].each do |element| 
+  [1, 2, 3, 4].each do |element|
     combinations[element] = calculate_ace_combinations(element)
   end
-  combinations 
+  combinations
 end
 
 def calculate_ace_value(hand_value, number_of_aces)
@@ -151,22 +138,22 @@ def calculate_ace_value(hand_value, number_of_aces)
   ace_values = ace_combination_index[number_of_aces]
   summed_hand_values = ace_values.map { |value| value + hand_value }
   valid_hand_values = summed_hand_values.select { |values| values <= 21 }
-   if valid_hand_values.empty?
-    -1 # if busted
-   else
+  if valid_hand_values.empty? # if busted
+    -1
+  else
     valid_hand_values.max
-   end 
+  end
 end
 
 def calculate_hand(hand)
   hand = return_non_ace_values(hand)
-  
+
   if hand.include?('ace')
-    aces, integers = hand.partition {|card| card == 'ace'}
-    
+    aces, integers = hand.partition { |card| card == 'ace' }
+
     return calculate_ace_value(integers.sum, aces.size)
-  end 
-  
+  end
+
   hand.reduce(:+)
 end
 
@@ -181,7 +168,7 @@ def hit_or_stay
     puts "hit or stay?".center(42)
     boarder
     answer = gets.chomp.downcase
-   
+
     break if valid_answer?(answer)
     prompt "Thats not a valid answer."
   end
@@ -189,44 +176,43 @@ def hit_or_stay
 end
 
 def busted?(player)
-  calculate_hand(player) > 21 || 
-  calculate_hand(player) == -1 
+  calculate_hand(player) > 21 ||
+    calculate_hand(player) == -1
 end
-
 
 def player_turn(player_hand, dealer_hand, deck)
   loop do
     answer = hit_or_stay
-    
+
     hit!(player_hand, deck) if answer == 'hit'
-    
+
     display_hands(player_hand, dealer_hand)
-    break if answer == 'stay' || busted?(player_hand)  
+    break if answer == 'stay' || busted?(player_hand)
   end
 end
 
 def dealer_turn(dealer_hand, player_hand, deck)
   return if busted?(player_hand)
-  loop do 
+  loop do
     prompt "Dealers turn..."
     sleep(1)
     comp_hand_value = calculate_hand(dealer_hand)
 
     hit!(dealer_hand, deck) if comp_hand_value < 17
-    
-    break if comp_hand_value >= 17 ||busted?(dealer_hand)
+
+    break if comp_hand_value >= 17 || busted?(dealer_hand)
   end
 end
 
 def tie?(results)
   results[:player] == results[:dealer] ||
-  results[:player] > 21 && results[:dealer] > 21
+    (results[:player] > 21 && results[:dealer] > 21)
 end
 
 def return_winner(results)
   return 'tie' if tie?(results)
 
-  valid_results = results.select{ |k, v| v <= 21 }
+  valid_results = results.select { |_k, v| v <= 21 }
   highest_hand = valid_results.max_by { |_, v| v }
   highest_hand.first.to_s
 end
@@ -249,16 +235,16 @@ def increment_score(winner, score)
   end
 end
 
-def display_set(score)
+def display_game(score)
   puts "You have #{score[:player]} wins".center(42)
   puts "Dealer has #{score[:dealer]} wins".center(42)
 end
 
-def set_winner?(score)
+def game_winner?(score)
   score[:player] == 3 || score[:dealer] == 3
 end
 
-def display_set_winner(score)
+def display_game_winner(score)
   if score[:player] == 3
     puts "Congratulations you won the match!".center(42)
   elsif score[:dealer] == 3
@@ -271,7 +257,7 @@ loop do
   break if continue?
 end
 
-score = {player: 0, dealer: 0}
+score = { player: 0, dealer: 0 }
 loop do
   deck = initialize_deck
 
@@ -284,17 +270,17 @@ loop do
 
   display_final_hand(player_hand, dealer_hand)
 
-  final_results = {player: calculate_hand(player_hand),
-                   dealer: calculate_hand(dealer_hand)}
+  final_results = { player: calculate_hand(player_hand),
+                    dealer: calculate_hand(dealer_hand) }
   match_winner = return_winner(final_results)
 
   increment_score(match_winner, score)
 
   display_match(match_winner)
-  display_set(score)
+  display_game(score)
 
-  break if set_winner?(score)
-  continue?  
+  break if game_winner?(score)
+  continue?
 end
-display_set_winner(score)
+display_game_winner(score)
 puts 'Thanks for playing goodbye!'.center(42)
