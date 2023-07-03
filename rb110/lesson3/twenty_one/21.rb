@@ -12,7 +12,8 @@ def start_screen
     "│         ││         │",
     "│        2││        1│",
     "└─────────┘└─────────┘",
-    " Welcome to Twenty-One"
+    " Welcome to Twenty-One",
+    "Lets see who can reach three wins first."
   ]
   lines.each do |line|
     puts line.center(42)
@@ -56,7 +57,7 @@ def continue?
   loop do
     prompt "---------------------------------------"
     prompt ""
-    prompt "type 'start' to begin or 'exit' to quit"
+    prompt "type 'start' to continue or 'exit' to quit"
     answer = gets.chomp.downcase
 
     if answer == 'start'
@@ -80,7 +81,6 @@ def initialize_deck
   end
   deck
 end
-
 
 def hit!(hand, deck)
   1.times do
@@ -114,7 +114,6 @@ def display_final_hand(player, dealer)
   prompt "Dealer has: #{joinor(dealer)}"
   prompt "You have: #{joinor(player)}"
 end
-
 
 def return_non_ace_values(hand)
   hand.map do |element|
@@ -162,12 +161,6 @@ def calculate_hand(hand)
   end 
 
   hand.reduce(:+)
-end
-
-def return_winner(player, dealer)
-  player = calculate_hand(player)
-  dealer = calculate_hand(dealer)
-  
 end
 
 def valid_answer?(answer)
@@ -230,33 +223,70 @@ def return_winner(results)
 end
 
 def display_match(winner)
+  prompt "---------------------------------------"
   if winner == 'tie'
-    puts "Its a draw!"
-  else 
-    puts "#{winner} won!"
+    puts "Its a draw!".center(42)
+  else
+    puts "#{winner} won!".center(42)
   end
 end
 
+def increment_score(winner, score)
+  case winner
+  when 'player'
+    score[:player] += 1 
+  when 'dealer'
+    score[:dealer] += 1
+  end
+end
+
+def display_set(score)
+  puts "You have #{score[:player]} wins".center(42)
+  puts "Dealer has #{score[:dealer]} wins".center(42)
+end
+
+def set_winner?(score)
+  score[:player] == 3 || score[:dealer] == 3
+end
+
+def display_set_winner(score)
+  if score[:player] == 3
+    puts "Congratulations you won the match!".center(42)
+  elsif score[:dealer] == 3
+    puts "Dealer won the match!".center(42)
+  end
+end
 
 loop do
   start_screen 
   break if continue?
 end
 
+score = {player: 0, dealer: 0}
 loop do 
   deck = initialize_deck
+
   player_hand = deal_hand!(deck)
   dealer_hand = deal_hand!(deck)
   display_hands(player_hand, dealer_hand)
 
   player_turn(player_hand, dealer_hand, deck)
   dealer_turn(dealer_hand, player_hand, deck)
-  
-
+    
   display_final_hand(player_hand, dealer_hand)
+  
   final_results = {player: calculate_hand(player_hand), 
                    dealer: calculate_hand(dealer_hand)}
-  winner = return_winner(final_results)
-  display_match(winner)
-  break
+  match_winner = return_winner(final_results)
+  
+  increment_score(match_winner, score)
+  
+  display_match(match_winner)
+  display_set(score)
+
+  break if set_winner?(score)
+  continue?  
 end
+display_set_winner(score)
+prompt 'Thanks for playing goodbye!'
+
