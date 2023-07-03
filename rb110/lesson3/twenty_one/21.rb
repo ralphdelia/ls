@@ -113,6 +113,8 @@ end
 def display_final_hand(player, dealer)
   prompt "Dealer has: #{joinor(dealer)}"
   prompt "You have: #{joinor(player)}"
+  puts 'Dealer busted!'.center(42) if busted?(dealer)
+  puts 'You busted!'.center(42) if busted?(player)  
 end
 
 def return_non_ace_values(hand)
@@ -149,7 +151,11 @@ def calculate_ace_value(hand_value, number_of_aces)
   ace_values = ace_combination_index[number_of_aces]
   summed_hand_values = ace_values.map { |value| value + hand_value }
   valid_hand_values = summed_hand_values.select { |values| values <= 21 }
-  valid_hand_values.max
+   if valid_hand_values.empty?
+    -1 # if busted
+   else
+    valid_hand_values.max
+   end 
 end
 
 def calculate_hand(hand)
@@ -157,9 +163,10 @@ def calculate_hand(hand)
   
   if hand.include?('ace')
     aces, integers = hand.partition {|card| card == 'ace'}
+    
     return calculate_ace_value(integers.sum, aces.size)
   end 
-
+  
   hand.reduce(:+)
 end
 
@@ -182,7 +189,8 @@ def hit_or_stay
 end
 
 def busted?(player)
- calculate_hand(player) > 21
+  calculate_hand(player) > 21 || 
+  calculate_hand(player) == -1 
 end
 
 
@@ -198,6 +206,7 @@ def player_turn(player_hand, dealer_hand, deck)
 end
 
 def dealer_turn(dealer_hand, player_hand, deck)
+  return if busted?(player_hand)
   loop do 
     prompt "Dealers turn..."
     sleep(1)
@@ -227,14 +236,14 @@ def display_match(winner)
   if winner == 'tie'
     puts "Its a draw!".center(42)
   else
-    puts "#{winner} won!".center(42)
+    puts "#{winner.capitalize} won!".center(42)
   end
 end
 
 def increment_score(winner, score)
   case winner
   when 'player'
-    score[:player] += 1 
+    score[:player] += 1
   when 'dealer'
     score[:dealer] += 1
   end
@@ -258,12 +267,12 @@ def display_set_winner(score)
 end
 
 loop do
-  start_screen 
+  start_screen
   break if continue?
 end
 
 score = {player: 0, dealer: 0}
-loop do 
+loop do
   deck = initialize_deck
 
   player_hand = deal_hand!(deck)
@@ -272,15 +281,15 @@ loop do
 
   player_turn(player_hand, dealer_hand, deck)
   dealer_turn(dealer_hand, player_hand, deck)
-    
+
   display_final_hand(player_hand, dealer_hand)
-  
-  final_results = {player: calculate_hand(player_hand), 
+
+  final_results = {player: calculate_hand(player_hand),
                    dealer: calculate_hand(dealer_hand)}
   match_winner = return_winner(final_results)
-  
+
   increment_score(match_winner, score)
-  
+
   display_match(match_winner)
   display_set(score)
 
@@ -288,5 +297,4 @@ loop do
   continue?  
 end
 display_set_winner(score)
-prompt 'Thanks for playing goodbye!'
-
+puts 'Thanks for playing goodbye!'.center(42)
