@@ -12,6 +12,7 @@ LINES = [
   " Welcome to Twenty-One",
   "Lets see who can reach three wins first."
 ]
+ACE_INDEX = {1=>[11, 1], 2=>[22, 12, 2], 3=>[33, 23, 13, 3], 4=>[44, 34, 24, 14, 4]}
 
 def start_screen
   system 'clear'
@@ -115,27 +116,8 @@ def return_non_ace_values(hand)
   end
 end
 
-def calculate_ace_combinations(number)
-  values = [1, 11]
-  combinations = []
-  values.repeated_combination(number) do |combination|
-    combinations.push(combination)
-  end
-  sums = combinations.map { |arr| arr.reduce(:+) }
-  sums.sort { |a, b| b <=> a }
-end
-
-def initialize_ace_index
-  combinations = {}
-  [1, 2, 3, 4].each do |element|
-    combinations[element] = calculate_ace_combinations(element)
-  end
-  combinations
-end
-
 def calculate_ace_value(hand_value, number_of_aces)
-  ace_combination_index = initialize_ace_index
-  ace_values = ace_combination_index[number_of_aces]
+  ace_values = ACE_INDEX[number_of_aces]
   summed_hand_values = ace_values.map { |value| value + hand_value }
   valid_hand_values = summed_hand_values.select { |values| values <= 21 }
   if valid_hand_values.empty? # if busted

@@ -1,4 +1,4 @@
-=begin
+
 def calculate_ace_combinations(number)
   values = [1, 11]
   combinations = []
@@ -14,7 +14,10 @@ def initialize_ace_index(hash)
     hash[element] = calculate_ace_combinations(element)
   end
 end
-
+hash = {}
+ initialize_ace_index(hash)
+p hash
+=begin
 def start_screen
   system 'clear'
   lines = [
