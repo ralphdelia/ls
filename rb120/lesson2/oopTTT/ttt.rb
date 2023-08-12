@@ -68,6 +68,22 @@ class Board
   end
   # rubocop:enable Metrics/AbcSize
 
+  def winning_move_availbale?(marker)
+    !!return_imminent_third_match(marker)
+  end
+
+  def return_imminent_third_match(marker)
+    WINNING_LINES.each do |line|
+      winning_line_values = @squares.values_at(*line).collect(&:marker)
+      next unless winning_line_values.count(marker) == 2 &&
+                  winning_line_values.count(' ') == 1
+
+      index = winning_line_values.index(' ')
+      return line[index]
+    end
+    nil
+  end
+
   private
 
   def three_identical_markers?(squares)
@@ -102,17 +118,33 @@ end
 class Player
   include Displable
 
-  attr_accessor :name
-  attr_reader :marker
-
-  def initialize(marker)
-    @marker = marker
-  end
+  attr_accessor :name, :marker
 
   def prompt_name
     puts "What is your name?"
     self.name = gets.chomp.capitalize
   end
+  
+  def prompt_marker
+    answer = ''
+    loop do 
+      puts "What mark would you like to use? eg. 'X', 'O'"
+      puts 'You can choose any single letter A-Z'
+      answer = gets.chomp
+      answer = answer.strip.upcase
+      
+      break if ("A".."Z").to_a.include?(answer)
+      puts 'Thats not a valid choice.'
+    end 
+
+    self.marker = answer
+  end
+
+  def computer_choose_marker(human_marker)
+    mark = human_marker = "O" ? 'X' : 'O'
+    self.marker = mark
+  end
+
 
   def prompt_choose_advisary
     opponents = %w(Moe Larry Curly)
@@ -175,8 +207,8 @@ class TTTGame
 
   def initialize
     @board = Board.new
-    @human = Player.new(HUMAN_MARKER)
-    @computer = Player.new(COMPUTER_MARKER)
+    @human = Player.new
+    @computer = Player.new
     @current_marker = FIRST_TO_MOVE
   end
 
@@ -187,7 +219,8 @@ class TTTGame
     human.prompt_name
     computer.prompt_choose_advisary
     @score = Score.new(human.name, computer.name)
-    
+    human.prompt_marker
+    computer.computer_choose_marker(human.marker)
     main_game
 
     display_game_winner if score.winner?
@@ -272,7 +305,15 @@ class TTTGame
   end
 
   def computer_moves
-    board[board.unmarked_keys.sample] = computer.marker
+    if board.winning_move_availbale?(computer.marker)
+      square = board.return_imminent_third_match(computer.marker)
+    elsif board.winning_move_availbale?(human.marker)
+      square = board.return_imminent_third_match(human.marker)
+    else
+      square = board.unmarked_keys.sample
+    end
+    
+    board[square] = computer.marker
   end
 
   def current_player_moves
