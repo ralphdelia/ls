@@ -1,9 +1,11 @@
+# frozen_string_literal: true
+
 require 'pry'
-module Displable 
+module Displable
   def joinor(array, delimiter = ', ', word = 'or')
-    if array.size < 2 
+    if array.size < 2
       array.first.to_s
-    elsif array.size < 3 
+    elsif array.size < 3
       array.join(" #{word} ")
     else
       final_word = "#{delimiter}#{word} #{array.last}"
@@ -41,9 +43,7 @@ class Board
   def winning_marker
     WINNING_LINES.each do |line|
       squares = @squares.values_at(*line)
-      if three_identical_markers?(squares)
-        return squares.first.marker
-      end
+      return squares.first.marker if three_identical_markers?(squares)
     end
     nil
   end
@@ -54,17 +54,17 @@ class Board
 
   # rubocop:disable Metrics/AbcSize
   def draw
-    puts "     |     |"
+    puts '     |     |'
     puts "  #{@squares[1]}  |  #{@squares[2]}  |  #{@squares[3]}"
-    puts "     |     |"
-    puts "-----+-----+-----"
-    puts "     |     |"
+    puts '     |     |'
+    puts '-----+-----+-----'
+    puts '     |     |'
     puts "  #{@squares[4]}  |  #{@squares[5]}  |  #{@squares[6]}"
-    puts "     |     |"
-    puts "-----+-----+-----"
-    puts "     |     |"
+    puts '     |     |'
+    puts '-----+-----+-----'
+    puts '     |     |'
     puts "  #{@squares[7]}  |  #{@squares[8]}  |  #{@squares[9]}"
-    puts "     |     |"
+    puts '     |     |'
   end
   # rubocop:enable Metrics/AbcSize
 
@@ -89,16 +89,17 @@ class Board
   def three_identical_markers?(squares)
     markers = squares.select(&:marked?).collect(&:marker)
     return false if markers.size != 3
+
     markers.min == markers.max
   end
 end
 
 class Square
-  INITIAL_MARKER = " "
+  INITIAL_MARKER = ' '
 
   attr_accessor :marker
 
-  def initialize(marker=INITIAL_MARKER)
+  def initialize(marker = INITIAL_MARKER)
     @marker = marker
   end
 
@@ -119,45 +120,49 @@ class Player
   include Displable
 
   attr_accessor :name, :marker
+end
 
-  def prompt_name
-    puts "What is your name?"
-    self.name = gets.chomp.capitalize
-  end
-  
-  def prompt_marker
-    answer = ''
-    loop do 
-      puts "What mark would you like to use? eg. 'X', 'O'"
-      puts 'You can choose any single letter A-Z'
-      answer = gets.chomp
-      answer = answer.strip.upcase
-      
-      break if ("A".."Z").to_a.include?(answer)
-      puts 'Thats not a valid choice.'
-    end 
-
-    self.marker = answer
-  end
-
+class Computer < Player
   def computer_choose_marker(human_marker)
-    mark = human_marker = "O" ? 'X' : 'O'
+    mark = human_marker == 'O' ? 'X' : 'O'
     self.marker = mark
   end
 
-
   def prompt_choose_advisary
-    opponents = %w(Moe Larry Curly)
+    opponents = %w[Moe Larry Curly]
     choice = ''
-    loop do 
-      puts "Choose your oponent:"
-      puts "#{joinor(opponents)}"
+    loop do
+      puts "=> Choose your oponent: #{joinor(opponents)}"
       choice = gets.chomp
 
       break if opponents.include?(choice.capitalize)
-      puts "invalid input"
+
+      puts 'invalid input'
     end
     self.name = choice.capitalize
+  end
+end
+
+class User < Player
+  def prompt_name
+    puts '=> What is your name?'
+    self.name = gets.chomp.capitalize
+  end
+
+  def prompt_marker
+    answer = ''
+    loop do
+      puts '=> What mark would you like to use?'
+      puts "(You can choose any letter A-Z. eg. 'X', 'O')"
+      answer = gets.chomp
+      answer = answer.strip.upcase
+
+      break if ('A'..'Z').to_a.include?(answer)
+
+      puts 'Thats not a valid choice.'
+    end
+
+    self.marker = answer
   end
 end
 
@@ -165,18 +170,18 @@ class Score
   WINNING_SCORE = 3
   attr_accessor :board
 
-  def initialize(p1, p2)
-    @board = init_board(p1, p2)
+  def initialize(player1, player2)
+    @board = init_board(player1, player2)
   end
 
-  def init_board(p1, p2)
+  def init_board(player1, player2)
     hash = {}
-    [p1, p2].each { |player| hash[player] = 0 }
+    [player1, player2].each { |player| hash[player] = 0 }
     hash
   end
 
   def update(player)
-    self.board[player] +=1
+    board[player] += 1
   end
 
   def display
@@ -187,7 +192,7 @@ class Score
   end
 
   def winner?
-    board.values.any? { |score| score >= WINNING_SCORE}
+    board.values.any? { |score| score >= WINNING_SCORE }
   end
 
   def leading_player
@@ -196,31 +201,29 @@ class Score
 end
 
 class TTTGame
-  HUMAN_MARKER = "X"
-  COMPUTER_MARKER = "O"
+  HUMAN_MARKER = 'X'
+  COMPUTER_MARKER = 'O'
   FIRST_TO_MOVE = HUMAN_MARKER
 
   include Displable
-  
+
   attr_reader :board, :human, :computer
   attr_accessor :score
 
   def initialize
     @board = Board.new
-    @human = Player.new
-    @computer = Player.new
+    @human = User.new
+    @computer = Computer.new
     @current_marker = FIRST_TO_MOVE
   end
 
   def play
     clear
     display_welcome_message
-    #choosing names init scoreboard
-    human.prompt_name
-    computer.prompt_choose_advisary
-    @score = Score.new(human.name, computer.name)
-    human.prompt_marker
-    computer.computer_choose_marker(human.marker)
+
+    initialize_names_and_markers
+    initialize_score_state
+
     main_game
 
     display_game_winner if score.winner?
@@ -229,16 +232,27 @@ class TTTGame
 
   private
 
+  def initialize_names_and_markers
+    human.prompt_name
+    computer.prompt_choose_advisary
+    human.prompt_marker
+    computer.computer_choose_marker(human.marker)
+  end
+
+  def initialize_score_state
+    @score = Score.new(human.name, computer.name)
+  end
+
   def main_game
     loop do
       display_board
       player_move
       update_score
       display_result
-      
+
       break if score.winner?
-      break unless play_again? 
-      
+      break unless play_again?
+
       reset
       display_play_again_message
     end
@@ -248,6 +262,7 @@ class TTTGame
     loop do
       current_player_moves
       break if board.someone_won? || board.full?
+
       clear_screen_and_display_board if human_turn?
     end
   end
@@ -257,15 +272,16 @@ class TTTGame
     score.update(winner)
   end
 
-
   def player_name_by_marker(marker)
-    player = [human, computer].select { |p| p.marker == marker } 
+    player = [human, computer].select { |p| p.marker == marker }
     player.first.name
   end
 
   def display_welcome_message
-    puts "Welcome to Tic Tac Toe!"
-    puts ""
+    puts 'Welcome to Tic Tac Toe!'.center(37)
+    puts ''
+    puts 'First person to win three games wins!'
+    puts ''
   end
 
   def display_game_winner
@@ -273,7 +289,7 @@ class TTTGame
   end
 
   def display_goodbye_message
-    puts "Thanks for playing Tic Tac Toe! Goodbye!"
+    puts 'Thanks for playing Tic Tac Toe! Goodbye!'
   end
 
   def clear_screen_and_display_board
@@ -287,9 +303,9 @@ class TTTGame
 
   def display_board
     puts "You're a #{human.marker}. #{computer.name} is a #{computer.marker}."
-    puts ""
+    puts ''
     board.draw
-    puts ""
+    puts ''
   end
 
   def human_moves
@@ -298,6 +314,7 @@ class TTTGame
     loop do
       square = gets.chomp.to_i
       break if board.unmarked_keys.include?(square)
+
       puts "Sorry, that's not a valid choice."
     end
 
@@ -305,14 +322,14 @@ class TTTGame
   end
 
   def computer_moves
-    if board.winning_move_availbale?(computer.marker)
-      square = board.return_imminent_third_match(computer.marker)
-    elsif board.winning_move_availbale?(human.marker)
-      square = board.return_imminent_third_match(human.marker)
-    else
-      square = board.unmarked_keys.sample
-    end
-    
+    square = if board.winning_move_availbale?(computer.marker)
+               board.return_imminent_third_match(computer.marker)
+             elsif board.winning_move_availbale?(human.marker)
+               board.return_imminent_third_match(human.marker)
+             else
+               board.unmarked_keys.sample
+             end
+
     board[square] = computer.marker
   end
 
@@ -331,31 +348,30 @@ class TTTGame
 
     case board.winning_marker
     when human.marker
-      puts "You won!"
+      puts 'You won!'
     when computer.marker
-      puts "Computer won!"
+      puts 'Computer won!'
     else
       puts "It's a tie!"
     end
     score.display
   end
 
-  
-
   def play_again?
     answer = nil
     loop do
-      puts "Would you like to play again? (y/n)"
+      puts 'Would you like to play again? (y/n)'
       answer = gets.chomp.downcase
-      break if %w(y n).include? answer
-      puts "Sorry, must be y or n"
+      break if %w[y n].include? answer
+
+      puts 'Sorry, must be y or n'
     end
 
     answer == 'y'
   end
 
   def clear
-    system "clear"
+    system 'clear'
   end
 
   def reset
@@ -366,7 +382,7 @@ class TTTGame
 
   def display_play_again_message
     puts "Let's play again!"
-    puts ""
+    puts ''
   end
 end
 
