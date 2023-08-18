@@ -38,7 +38,7 @@ class Participant
 
     ace_value = possible_ace_values.reject { |v| (v + hand_value) > 21 }
 
-    return 22 if ace_value.empty? # if busted
+    return 1 if ace_value.empty? # if busted
     ace_value.max
   end
 
@@ -124,13 +124,50 @@ class Card
   end
 end
 
+module Boxable
+  def display_box_left(array_of_strings)
+    rows = array_of_strings.max_by(&:size).size + 2
+    puts top_of_box(rows)
+    puts center_of_box(array_of_strings, rows)
+    puts bottom_of_box(rows)
+  end
+
+  def display_box_right(array_of_strings)
+    rows = array_of_strings.max_by(&:size).size + 2
+    top_of_box(rows).each { |str| puts str.rjust(80) }
+    center_of_box(array_of_strings, rows).each { |str| puts str.rjust(80) }
+    bottom_of_box(rows).each { |str| puts str.rjust(80) }
+  end
+
+  private
+
+  def top_of_box(rows)
+    [("+#{('-' * rows)}+"),
+     ("|#{(' ' * rows)}|")]
+  end
+
+  def center_of_box(strings, rows)
+    array = []
+    strings.each do |string|
+      array << ("|#{string.center(rows)}|")
+    end
+    array
+  end
+
+  def bottom_of_box(rows)
+    [("|#{(' ' * rows)}|"),
+     ("+#{('-' * rows)}+")]
+  end
+end
+
 module Displayable
   def display_flop
-    dealer_display('The dealer has:')
-    dealer_display("--#{dealer.cards.first}")
-    dealer_display("--One card face down")
-    human_display('Your cards are:')
+    puts "The dealer has:".rjust(80)
+    dealer_text = [dealer.cards.first.to_s, "One card face down"]
+    display_box_right(dealer_text)
+
     display_human_hand
+    display_players_current_hand_value
   end
 
   def display_players_current_hand_value
@@ -139,9 +176,14 @@ module Displayable
   end
 
   def display_human_hand
-    human.cards.each do |card|
-      human_display("--#{card}")
-    end
+    puts "#{human.name}'s hand is:"
+    hand = human.cards.map(&:to_s)
+    display_box_left(hand)
+  end
+
+  def display_dealer_current_hand_value
+    puts ''
+    puts "#{dealer.name}'s hand value is #{dealer.total}".rjust(80)
   end
 
   def display_busted
@@ -152,10 +194,9 @@ module Displayable
   end
 
   def display_dealer_hand
-    dealer_display('The dealer has:')
-    dealer.cards.each do |card|
-      dealer_display("--#{card}")
-    end
+    puts 'The dealer has:'.rjust(80)
+    hand = dealer.cards.map(&:to_s)
+    display_box_right(hand)
   end
 
   def human_display(text)
@@ -188,6 +229,27 @@ module Displayable
     arr
   end
 
+  def orchestrate_winning_hand_display
+    puts "The results are..."
+    display_dealer_hand
+    display_dealer_current_hand_value
+    display_human_hand
+    display_players_current_hand_value
+    display_winner_of_hand
+  end
+
+  def display_winner_of_hand
+    human_hand_value = human.total
+    dealer_hand_value = dealer.total
+    if human_hand_value == dealer_hand_value
+      puts "Its a tie!".center(80)
+    elsif human_hand_value > dealer_hand_value
+      puts "#{human.name} Won!".center(80)
+    elsif human_hand_value < dealer_hand_value
+      puts "#{dealer.name} Won!".center(80)
+    end
+  end
+
   def display_rules
     rules = paragraph_from_str(MESSAGES['rules'], 55)
     rules.each { |str| puts str.center(80) }
@@ -204,6 +266,7 @@ end
 
 class Game
   include Displayable
+  include Boxable
 
   attr_accessor :human, :dealer, :deck
 
@@ -217,24 +280,18 @@ class Game
     loop do
       reset
       deal_cards
-
       display_flop
-      display_players_current_hand_value
-
-      player_turn
-      if human.busted?
-        display_busted
-        next if play_again?
-      end
-
-      dealers_turn
-      if dealer.busted?
-        display_busted
-        next if play_again?
-      end
-      display_result_of_hand
-      break unless play_again?
+      player_and_dealer_turn
+      result_of_round
+      play_again?
     end
+  end
+
+  def player_and_dealer_turn
+    player_turn
+    return if human.busted?
+
+    dealers_turn
   end
 
   def game_intro
@@ -301,38 +358,16 @@ class Game
       break if %w(y n).include?(answer)
       puts "Invalid inputs please use 'y' or 'n'."
     end
-
     return true if answer == 'y'
     exit_game
   end
 
-  def display_result_of_hand
-    puts "The results are..."
-    display_dealer_hand
-    display_dealer_current_hand_value
-
-    puts "#{human.name}'s hand is:"
-    display_human_hand
-    display_players_current_hand_value
-
-    display_winner_of_hand
-  end
-
-  def display_dealer_current_hand_value
-    puts ''
-    dealer_display("#{dealer.name}'s hand value is #{dealer.total}")
-  end
-
-  def display_winner_of_hand
-    human_hand_value = human.total
-    dealer_hand_value = dealer.total
-    if human_hand_value == dealer_hand_value
-      puts "Its a tie!"
-    elsif human_hand_value > dealer_hand_value
-      puts "#{human.name} Won!".center(80)
-    elsif human_hand_value < dealer_hand_value
-      puts "#{dealer.name} Won!".center(80)
+  def result_of_round
+    if human.busted? || dealer.busted?
+      display_busted
+      return
     end
+    orchestrate_winning_hand_display
   end
 
   def deal_cards
@@ -343,16 +378,16 @@ class Game
   end
 
   def dealers_turn
-    dealer_display("Its Dealer #{dealer.name}'s turn.")
+    puts "Its Dealer #{dealer.name}'s turn.".rjust(80)
     loop do
       sleep(2)
       if dealer.total >= 17 && !dealer.busted?
-        dealer_display("Dealer #{dealer.name} stays")
+        puts "Dealer #{dealer.name} stays".rjust(80)
         break
       elsif dealer.busted?
         break
       else
-        dealer_display("Dealer #{dealer.name} hits")
+        puts "Dealer #{dealer.name} hits".rjust(80)
         dealer.dealt(deck.card_from_deck)
         display_dealer_hand
       end
@@ -380,7 +415,6 @@ class Game
         human.dealt(deck.card_from_deck)
         puts 'You have decided to hit!'
         puts ''
-        human_display('Your current hand is:')
         display_human_hand
         display_players_current_hand_value
         break if human.busted?
