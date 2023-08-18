@@ -1,6 +1,142 @@
 require 'yaml'
 MESSAGES = YAML.load_file('21_messages.yml')
 
+module Boxable
+  def display_box_left(array_of_strings)
+    rows = array_of_strings.max_by(&:size).size + 2
+    puts top_of_box(rows)
+    puts center_of_box(array_of_strings, rows)
+    puts bottom_of_box(rows)
+  end
+
+  def display_box_right(array_of_strings)
+    rows = array_of_strings.max_by(&:size).size + 2
+    top_of_box(rows).each { |str| puts str.rjust(80) }
+    center_of_box(array_of_strings, rows).each { |str| puts str.rjust(80) }
+    bottom_of_box(rows).each { |str| puts str.rjust(80) }
+  end
+
+  private
+
+  def top_of_box(rows)
+    [("+#{('-' * rows)}+"),
+     ("|#{(' ' * rows)}|")]
+  end
+
+  def center_of_box(strings, rows)
+    array = []
+    strings.each do |string|
+      array << ("|#{string.center(rows)}|")
+    end
+    array
+  end
+
+  def bottom_of_box(rows)
+    [("|#{(' ' * rows)}|"),
+     ("+#{('-' * rows)}+")]
+  end
+end
+
+module Displayable
+  def display_flop
+    puts "The dealer has:".rjust(80)
+    dealer_text = [dealer.cards.first.to_s, "One card face down"]
+    display_box_right(dealer_text)
+
+    display_human_hand
+    display_players_current_hand_value
+  end
+
+  def display_players_current_hand_value
+    puts ''
+    puts "Your hand value is #{human.total}."
+    puts ''
+  end
+
+  def display_human_hand
+    puts "#{human.name}'s hand is:"
+    hand = human.cards.map(&:to_s)
+    display_box_left(hand)
+  end
+
+  def display_dealer_current_hand_value
+    puts ''
+    puts "#{dealer.name}'s hand value is #{dealer.total}".rjust(80)
+  end
+
+  def display_busted
+    loosing_player = human.busted? ? human.name : dealer.name
+    winning_player = loosing_player == human.name ? dealer.name : human.name
+    puts "Oof looks like #{loosing_player} BUSTED!".center(80)
+    puts "#{winning_player} Wins!".center(80)
+  end
+
+  def display_dealer_hand
+    puts 'The dealer has:'.rjust(80)
+    hand = dealer.cards.map(&:to_s)
+    display_box_right(hand)
+  end
+
+  def orchestrate_winning_hand_display
+    puts "The results are..."
+    display_dealer_hand
+    display_dealer_current_hand_value
+    display_human_hand
+    display_players_current_hand_value
+    display_winner_of_hand
+  end
+
+  def display_winner_of_hand
+    human_hand_value = human.total
+    dealer_hand_value = dealer.total
+    if human_hand_value == dealer_hand_value
+      puts "Its a tie!".center(80)
+    elsif human_hand_value > dealer_hand_value
+      puts "#{human.name} Won!".center(80)
+    elsif human_hand_value < dealer_hand_value
+      puts "#{dealer.name} Won!".center(80)
+    end
+  end
+
+  def dealer_display(text)
+    puts text.rjust(80)
+  end
+
+  def display_rules
+    rules = paragraph_from_str(MESSAGES['rules'], 55)
+    rules.each { |str| puts str.center(80) }
+  end
+
+  def display_welcome
+    system 'clear'
+    MESSAGES['welcome'].each do |line|
+      puts line.center(80)
+    end
+    puts ''
+  end
+
+  def shuffle_animation
+    (1..40).each do |num|
+      system 'clear'
+      puts 'Shuffling...'.rjust(num * 2)
+      sleep(0.05)
+    end
+    system 'clear'
+  end
+
+  def paragraph_from_str(text, width=40)
+    arr = []
+    text = text.split
+    while text.size.positive?
+      str = ''
+      str << "#{text.shift} " while text.size.positive? &&
+                                    (str.size + text.first.size + 1) <= width
+      arr << str.rstrip
+    end
+    arr
+  end
+end
+
 class Participant
   ACE_VALUES_BY_NUMBER = { 1 => [11, 1], 2 => [12, 2], 3 => [13, 3],
                            4 => [14, 4] }.freeze
@@ -96,10 +232,6 @@ class Deck
     cards.delete(cards.sample)
   end
 
-  def card_in_deck?(card)
-    cards.include?(card)
-  end
-
   def init_new_deck
     deck = []
     SUITS.each do |suit|
@@ -121,138 +253,6 @@ class Card
 
   def to_s
     "The #{rank} of #{suit}"
-  end
-end
-
-module Boxable
-  def display_box_left(array_of_strings)
-    rows = array_of_strings.max_by(&:size).size + 2
-    puts top_of_box(rows)
-    puts center_of_box(array_of_strings, rows)
-    puts bottom_of_box(rows)
-  end
-
-  def display_box_right(array_of_strings)
-    rows = array_of_strings.max_by(&:size).size + 2
-    top_of_box(rows).each { |str| puts str.rjust(80) }
-    center_of_box(array_of_strings, rows).each { |str| puts str.rjust(80) }
-    bottom_of_box(rows).each { |str| puts str.rjust(80) }
-  end
-
-  private
-
-  def top_of_box(rows)
-    [("+#{('-' * rows)}+"),
-     ("|#{(' ' * rows)}|")]
-  end
-
-  def center_of_box(strings, rows)
-    array = []
-    strings.each do |string|
-      array << ("|#{string.center(rows)}|")
-    end
-    array
-  end
-
-  def bottom_of_box(rows)
-    [("|#{(' ' * rows)}|"),
-     ("+#{('-' * rows)}+")]
-  end
-end
-
-module Displayable
-  def display_flop
-    puts "The dealer has:".rjust(80)
-    dealer_text = [dealer.cards.first.to_s, "One card face down"]
-    display_box_right(dealer_text)
-
-    display_human_hand
-    display_players_current_hand_value
-  end
-
-  def display_players_current_hand_value
-    puts ''
-    puts "Your hand value is #{human.total}."
-    puts ''
-  end
-
-  def display_human_hand
-    puts "#{human.name}'s hand is:"
-    hand = human.cards.map(&:to_s)
-    display_box_left(hand)
-  end
-
-  def display_dealer_current_hand_value
-    puts ''
-    puts "#{dealer.name}'s hand value is #{dealer.total}".rjust(80)
-  end
-
-  def display_busted
-    loosing_player = human.busted? ? human.name : dealer.name
-    winning_player = loosing_player == human.name ? dealer.name : human.name
-    puts "Oof looks like #{loosing_player} BUSTED!".center(80)
-    puts "#{winning_player} Wins!".center(80)
-  end
-
-  def display_dealer_hand
-    puts 'The dealer has:'.rjust(80)
-    hand = dealer.cards.map(&:to_s)
-    display_box_right(hand)
-  end
-
-  def paragraph_from_str(text, width=40)
-    arr = []
-    text = text.split
-    while text.size.positive?
-      str = ''
-      str << "#{text.shift} " while text.size.positive? &&
-                                    (str.size + text.first.size + 1) <= width
-      arr << str.rstrip
-    end
-    arr
-  end
-
-  def shuffle_animation
-    (1..40).each do |num|
-      system 'clear'
-      puts 'Shuffling...'.rjust(num * 2)
-      sleep(0.05)
-    end
-    system 'clear'
-  end
-
-  def orchestrate_winning_hand_display
-    puts "The results are..."
-    display_dealer_hand
-    display_dealer_current_hand_value
-    display_human_hand
-    display_players_current_hand_value
-    display_winner_of_hand
-  end
-
-  def display_winner_of_hand
-    human_hand_value = human.total
-    dealer_hand_value = dealer.total
-    if human_hand_value == dealer_hand_value
-      puts "Its a tie!".center(80)
-    elsif human_hand_value > dealer_hand_value
-      puts "#{human.name} Won!".center(80)
-    elsif human_hand_value < dealer_hand_value
-      puts "#{dealer.name} Won!".center(80)
-    end
-  end
-
-  def display_rules
-    rules = paragraph_from_str(MESSAGES['rules'], 55)
-    rules.each { |str| puts str.center(80) }
-  end
-
-  def display_welcome
-    system 'clear'
-    MESSAGES['welcome'].each do |line|
-      puts line.center(80)
-    end
-    puts ''
   end
 end
 
@@ -358,10 +358,6 @@ class Game
       human.dealt(deck.card_from_deck)
       dealer.dealt(deck.card_from_deck)
     end
-  end
-
-  def dealer_display(text)
-    puts text.rjust(80)
   end
 
   def dealers_turn
