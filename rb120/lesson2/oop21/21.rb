@@ -173,6 +173,7 @@ module Displayable
   def display_players_current_hand_value
     puts ''
     puts "Your hand value is #{human.total}."
+    puts ''
   end
 
   def display_human_hand
@@ -199,24 +200,6 @@ module Displayable
     display_box_right(hand)
   end
 
-  def human_display(text)
-    text = paragraph_from_str(text)
-    text.each { |str| puts str }
-  end
-
-  def dealer_display(text)
-    if text.size > 40
-      text = paragraph_from_str(text)
-      text.each do |string|
-        offset = 40 - string.size
-        puts string.rjust(80 - offset)
-      end
-    else
-      offset = 40 - text.size
-      puts text.rjust(80 - offset)
-    end
-  end
-
   def paragraph_from_str(text, width=40)
     arr = []
     text = text.split
@@ -227,6 +210,15 @@ module Displayable
       arr << str.rstrip
     end
     arr
+  end
+
+  def shuffle_animation
+    (1..40).each do |num|
+      system 'clear'
+      puts 'Shuffling...'.rjust(num * 2)
+      sleep(0.05)
+    end
+    system 'clear'
   end
 
   def orchestrate_winning_hand_display
@@ -326,15 +318,6 @@ class Game
     shuffle_animation
   end
 
-  def shuffle_animation
-    (1..40).each do |num|
-      system 'clear'
-      puts 'Shuffling...'.rjust(num * 2)
-      sleep(0.1)
-    end
-    system 'clear'
-  end
-
   def new_deck
     @deck = Deck.new
   end
@@ -377,48 +360,58 @@ class Game
     end
   end
 
+  def dealer_display(text)
+    puts text.rjust(80)
+  end
+
   def dealers_turn
-    puts "Its Dealer #{dealer.name}'s turn.".rjust(80)
+    dealer_display("Its Dealer #{dealer.name}'s turn.")
     loop do
       sleep(2)
+      break if dealer.busted?
       if dealer.total >= 17 && !dealer.busted?
-        puts "Dealer #{dealer.name} stays".rjust(80)
+        dealer_display("Dealer #{dealer.name} stays")
         break
-      elsif dealer.busted?
-        break
-      else
-        puts "Dealer #{dealer.name} hits".rjust(80)
-        dealer.dealt(deck.card_from_deck)
-        display_dealer_hand
       end
+      hit_dealer
     end
   end
 
-  def player_turn
-    puts ''
-    puts 'Its your turn...'
+  def hit_dealer
+    dealer_display("Dealer #{dealer.name} hits")
+    dealer.dealt(deck.card_from_deck)
+    display_dealer_hand
+  end
+
+  def prompt_hit_or_stay
+    answer = nil
     loop do
       puts MESSAGES['hit_or_stay'].center(80)
-      answer = nil
-      loop do
-        answer = gets.chomp.downcase
-        break if %w(h s).include?(answer)
+      answer = gets.chomp.downcase
+      break if %w(h s).include?(answer)
+      puts "Sorry, must enter 'h' or 's'."
+    end
+    answer
+  end
 
-        puts "Sorry, must enter 'h' or 's'."
-      end
+  def hit_player
+    human.dealt(deck.card_from_deck)
+    puts 'You have decided to hit!'
+    puts ''
+    display_human_hand
+    display_players_current_hand_value
+  end
 
+  def player_turn
+    puts 'Its your turn...'
+    loop do
       break if human.busted?
-      if answer == 's'
+      choice = prompt_hit_or_stay
+      if choice == 's'
         puts 'You have decided to stay'
         break
-      else
-        human.dealt(deck.card_from_deck)
-        puts 'You have decided to hit!'
-        puts ''
-        display_human_hand
-        display_players_current_hand_value
-        break if human.busted?
       end
+      hit_player
     end
   end
 end
