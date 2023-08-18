@@ -119,7 +119,7 @@ module Displayable
     (1..40).each do |num|
       system 'clear'
       puts 'Shuffling...'.rjust(num * 2)
-      sleep(0.05)
+      sleep(0.075)
     end
     system 'clear'
   end
