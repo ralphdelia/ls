@@ -1,21 +1,21 @@
 require 'yaml'
 MESSAGES = YAML.load_file('21_messages.yml')
 
-module Boxable
-  def display_box_left(cards)
-    puts top(cards).join(' ')
-    puts suit_left(cards).join(' ')
-    puts center(cards).join(' ')
-    puts suit_right(cards).join(' ')
-    puts bottom(cards).join(' ')
+module CardRenderable
+  def display_card_left(cards)
+    puts top(cards)
+    puts suit_left(cards)
+    puts center(cards)
+    puts suit_right(cards)
+    puts bottom(cards)
   end
 
-  def display_box_right(cards)
-    puts top(cards).join(" ").rjust(80)
-    puts suit_left(cards).join(" ").rjust(80)
-    puts center(cards).join(" ").rjust(80)
-    puts suit_right(cards).join(" ").rjust(80)
-    puts bottom(cards).join(" ").rjust(80)
+  def display_card_right(cards)
+    puts top(cards).rjust(80)
+    puts suit_left(cards).rjust(80)
+    puts center(cards).rjust(80)
+    puts suit_right(cards).rjust(80)
+    puts bottom(cards).rjust(80)
   end
 
   private
@@ -23,38 +23,37 @@ module Boxable
   def top(cards)
     arr = []
     cards.each do |_|
-      arr << ("┌" + ('─' * 4) + "┐") 
+      arr << ("┌#{('─' * 4)}┐")
     end
-    arr
+    arr.join(' ')
   end
 
   def bottom(cards)
     arr = []
     cards.each do |_|
-      arr << (("└" + ('─' * 4) + "┘"))
+      arr << (("└#{('─' * 4)}┘"))
     end
-    arr
+    arr.join(' ')
   end
-
 
   def suit_left(cards)
     arr = []
     cards.each do |card|
-      arr << ("│#{card.suit}" + (' ' * 3) + "│")
+      arr << ("│#{card.suit}#{(' ' * 3)}│")
     end
-    arr
+    arr.join(' ')
   end
 
   def center(cards)
-    arr = [] 
+    arr = []
     cards.each do |card|
-      if card.rank == '10'
-        arr << center_for_ten(card.rank)
-      else 
-        arr << ("│" " #{card.rank}  " "│")
-      end
+      arr << if card.rank == '10'
+               center_for_ten(card.rank)
+             else
+               ("│" " #{card.rank}  " "│")
+             end
     end
-    arr 
+    arr.join(' ')
   end
 
   def center_for_ten(rank)
@@ -64,9 +63,9 @@ module Boxable
   def suit_right(cards)
     arr = []
     cards.each do |card|
-      arr << ("│" + (' ' * 3) + "#{card.suit}│")
+      arr << ("│#{(' ' * 3)}#{card.suit}│")
     end
-    arr
+    arr.join(' ')
   end
 end
 
@@ -74,27 +73,10 @@ module Displayable
   def display_flop
     puts "The dealer has:".rjust(80)
     dealer_cards = [dealer.cards.first, Card.new(" ", " ")]
-    display_box_right(dealer_cards)
+    display_card_right(dealer_cards)
 
-    display_human_hand
-    display_players_current_hand_value
-  end
-
-  def display_players_current_hand_value
-    puts ''
-    puts "Your hand value is #{human.total}."
-    puts ''
-  end
-
-  def display_human_hand
-    puts "#{human.name}'s hand is:"
-  
-    display_box_left(human.cards)
-  end
-
-  def display_dealer_current_hand_value
-    puts ''
-    puts "#{dealer.name}'s hand value is #{dealer.total}".rjust(80)
+    human.display_hand
+    human.display_current_hand_value
   end
 
   def display_busted
@@ -104,17 +86,12 @@ module Displayable
     puts "#{winning_player} Wins!".center(80)
   end
 
-  def display_dealer_hand
-    puts 'The dealer has:'.rjust(80)
-    display_box_right(dealer.cards)
-  end
-
   def orchestrate_winning_hand_display
     puts "The results are..."
-    display_dealer_hand
-    display_dealer_current_hand_value
-    display_human_hand
-    display_players_current_hand_value
+    dealer.display_hand
+    dealer.display_current_hand_value
+    human.display_hand
+    human.display_current_hand_value
     display_winner_of_hand
   end
 
@@ -128,10 +105,6 @@ module Displayable
     elsif human_hand_value < dealer_hand_value
       puts "#{dealer.name} Won!".center(80)
     end
-  end
-
-  def dealer_display(text)
-    puts text.rjust(80)
   end
 
   def display_rules
@@ -173,7 +146,8 @@ class Participant
   ACE_VALUES_BY_NUMBER = { 1 => [11, 1], 2 => [12, 2], 3 => [13, 3],
                            4 => [14, 4] }.freeze
 
-  attr_accessor :cards
+  include CardRenderable
+  attr_accessor :cards, :deck
 
   def initialize
     @cards = []
@@ -190,6 +164,17 @@ class Participant
   def busted?
     total > 21
   end
+
+  def total
+    aces, non_aces = cards.partition { |card| card.rank == 'A' }
+
+    hand_value = sum_non_ace_cards(non_aces)
+    hand_value += calculate_ace_value(hand_value, aces) unless aces.empty?
+
+    hand_value
+  end
+
+  private
 
   def sum_non_ace_cards(array_of_cards)
     array_of_cards.reduce(0) do |acc, card|
@@ -209,15 +194,6 @@ class Participant
     return 1 if ace_value.empty? # if busted
     ace_value.max
   end
-
-  def total
-    aces, non_aces = cards.partition { |card| card.rank == 'A' }
-
-    hand_value = sum_non_ace_cards(non_aces)
-    hand_value += calculate_ace_value(hand_value, aces) unless aces.empty?
-
-    hand_value
-  end
 end
 
 class Player < Participant
@@ -235,6 +211,50 @@ class Player < Participant
     end
     self.name = answer
   end
+
+  def display_current_hand_value
+    puts ''
+    puts "Your hand value is #{total}."
+    puts ''
+  end
+
+  def display_hand
+    puts "#{name}'s hand is:"
+
+    display_card_left(cards)
+  end
+
+  def prompt_hit_or_stay
+    answer = nil
+    loop do
+      puts MESSAGES['hit_or_stay'].center(80)
+      answer = gets.chomp.downcase
+      break if %w(h s).include?(answer)
+      puts "Sorry, must enter 'h' or 's'."
+    end
+    answer
+  end
+
+  def hit_player
+    dealt(deck.card_from_deck)
+    puts 'You have decided to hit!'
+    puts ''
+    display_hand
+    display_current_hand_value
+  end
+
+  def turn
+    puts 'Its your turn...'
+    loop do
+      break if busted?
+      choice = prompt_hit_or_stay
+      if choice == 's'
+        puts 'You have decided to stay'
+        break
+      end
+      hit_player
+    end
+  end
 end
 
 class Dealer < Participant
@@ -247,6 +267,39 @@ class Dealer < Participant
 
   def init_dealer_name
     %w(Moe Larry Curly).sample
+  end
+
+  def display_current_hand_value
+    puts ''
+    puts "#{name}'s hand value is #{total}".rjust(80)
+  end
+
+  def turn
+    dealer_display("Its Dealer #{name}'s turn.")
+    loop do
+      sleep(2)
+      break if busted?
+      if total >= 17 && !busted?
+        dealer_display("Dealer #{name} stays")
+        break
+      end
+      hit_dealer
+    end
+  end
+
+  def hit_dealer
+    dealer_display("Dealer #{name} hits")
+    dealt(deck.card_from_deck)
+    display_hand
+  end
+
+  def display_hand
+    puts 'The dealer has:'.rjust(80)
+    display_card_right(cards)
+  end
+
+  def dealer_display(text)
+    puts text.rjust(80)
   end
 end
 
@@ -290,7 +343,7 @@ end
 
 class Game
   include Displayable
-  include Boxable
+  include CardRenderable
 
   attr_accessor :human, :dealer, :deck
 
@@ -307,25 +360,25 @@ class Game
       display_flop
       player_and_dealer_turn
       result_of_round
-      play_again?
+      prompt_play_again
     end
   end
 
   def player_and_dealer_turn
-    player_turn
+    human.turn
     return if human.busted?
 
-    dealers_turn
+    dealer.turn
   end
 
   def game_intro
     display_welcome
     human.prompt_name
     display_rules if rules?
-    begin?
+    prompt_begin
   end
 
-  def begin?
+  def prompt_begin
     answer = ''
     loop do
       puts ''
@@ -352,6 +405,8 @@ class Game
 
   def new_deck
     @deck = Deck.new
+    human.deck = @deck
+    dealer.deck = @deck
   end
 
   def rules?
@@ -365,7 +420,7 @@ class Game
     answer == 'y'
   end
 
-  def play_again?
+  def prompt_play_again
     answer = ""
     loop do
       puts "Would you like to play again?(y/n)".center(80)
@@ -389,57 +444,6 @@ class Game
     2.times do |_|
       human.dealt(deck.card_from_deck)
       dealer.dealt(deck.card_from_deck)
-    end
-  end
-
-  def dealers_turn
-    dealer_display("Its Dealer #{dealer.name}'s turn.")
-    loop do
-      sleep(2)
-      break if dealer.busted?
-      if dealer.total >= 17 && !dealer.busted?
-        dealer_display("Dealer #{dealer.name} stays")
-        break
-      end
-      hit_dealer
-    end
-  end
-
-  def hit_dealer
-    dealer_display("Dealer #{dealer.name} hits")
-    dealer.dealt(deck.card_from_deck)
-    display_dealer_hand
-  end
-
-  def prompt_hit_or_stay
-    answer = nil
-    loop do
-      puts MESSAGES['hit_or_stay'].center(80)
-      answer = gets.chomp.downcase
-      break if %w(h s).include?(answer)
-      puts "Sorry, must enter 'h' or 's'."
-    end
-    answer
-  end
-
-  def hit_player
-    human.dealt(deck.card_from_deck)
-    puts 'You have decided to hit!'
-    puts ''
-    display_human_hand
-    display_players_current_hand_value
-  end
-
-  def player_turn
-    puts 'Its your turn...'
-    loop do
-      break if human.busted?
-      choice = prompt_hit_or_stay
-      if choice == 's'
-        puts 'You have decided to stay'
-        break
-      end
-      hit_player
     end
   end
 end
