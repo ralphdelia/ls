@@ -2,46 +2,79 @@ require 'yaml'
 MESSAGES = YAML.load_file('21_messages.yml')
 
 module Boxable
-  def display_box_left(array_of_strings)
-    rows = array_of_strings.max_by(&:size).size + 2
-    puts top_of_box(rows)
-    puts center_of_box(array_of_strings, rows)
-    puts bottom_of_box(rows)
+  def display_box_left(cards)
+    puts top(cards).join(' ')
+    puts suit_left(cards).join(' ')
+    puts center(cards).join(' ')
+    puts suit_right(cards).join(' ')
+    puts bottom(cards).join(' ')
   end
 
-  def display_box_right(array_of_strings)
-    rows = array_of_strings.max_by(&:size).size + 2
-    top_of_box(rows).each { |str| puts str.rjust(80) }
-    center_of_box(array_of_strings, rows).each { |str| puts str.rjust(80) }
-    bottom_of_box(rows).each { |str| puts str.rjust(80) }
+  def display_box_right(cards)
+    puts top(cards).join(" ").rjust(80)
+    puts suit_left(cards).join(" ").rjust(80)
+    puts center(cards).join(" ").rjust(80)
+    puts suit_right(cards).join(" ").rjust(80)
+    puts bottom(cards).join(" ").rjust(80)
   end
 
   private
 
-  def top_of_box(rows)
-    [("+#{('-' * rows)}+"),
-     ("|#{(' ' * rows)}|")]
-  end
-
-  def center_of_box(strings, rows)
-    array = []
-    strings.each do |string|
-      array << ("|#{string.center(rows)}|")
+  def top(cards)
+    arr = []
+    cards.each do |_|
+      arr << ("┌" + ('─' * 4) + "┐") 
     end
-    array
+    arr
   end
 
-  def bottom_of_box(rows)
-    [("|#{(' ' * rows)}|"),
-     ("+#{('-' * rows)}+")]
+  def bottom(cards)
+    arr = []
+    cards.each do |_|
+      arr << (("└" + ('─' * 4) + "┘"))
+    end
+    arr
+  end
+
+
+  def suit_left(cards)
+    arr = []
+    cards.each do |card|
+      arr << ("│#{card.suit}" + (' ' * 3) + "│")
+    end
+    arr
+  end
+
+  def center(cards)
+    arr = [] 
+    cards.each do |card|
+      if card.rank == '10'
+        arr << center_for_ten(card.rank)
+      else 
+        arr << ("│" " #{card.rank}  " "│")
+      end
+    end
+    arr 
+  end
+
+  def center_for_ten(rank)
+    ("│" " #{rank} " "│")
+  end
+
+  def suit_right(cards)
+    arr = []
+    cards.each do |card|
+      arr << ("│" + (' ' * 3) + "#{card.suit}│")
+    end
+    arr
   end
 end
 
 module Displayable
   def display_flop
     puts "The dealer has:".rjust(80)
-    dealer_text = [dealer.cards.first.to_s, "One card face down"]
-    display_box_right(dealer_text)
+    dealer_cards = [dealer.cards.first, Card.new(" ", " ")]
+    display_box_right(dealer_cards)
 
     display_human_hand
     display_players_current_hand_value
@@ -55,8 +88,8 @@ module Displayable
 
   def display_human_hand
     puts "#{human.name}'s hand is:"
-    hand = human.cards.map(&:to_s)
-    display_box_left(hand)
+  
+    display_box_left(human.cards)
   end
 
   def display_dealer_current_hand_value
@@ -73,8 +106,7 @@ module Displayable
 
   def display_dealer_hand
     puts 'The dealer has:'.rjust(80)
-    hand = dealer.cards.map(&:to_s)
-    display_box_right(hand)
+    display_box_right(dealer.cards)
   end
 
   def orchestrate_winning_hand_display
@@ -163,7 +195,7 @@ class Participant
     array_of_cards.reduce(0) do |acc, card|
       if card.rank.to_i.to_s == card.rank
         acc + card.rank.to_i
-      elsif %w(Jack Queen King).include?(card.rank)
+      elsif %w(J Q K).include?(card.rank)
         acc + 10
       end
     end
@@ -179,7 +211,7 @@ class Participant
   end
 
   def total
-    aces, non_aces = cards.partition { |card| card.rank == 'Ace' }
+    aces, non_aces = cards.partition { |card| card.rank == 'A' }
 
     hand_value = sum_non_ace_cards(non_aces)
     hand_value += calculate_ace_value(hand_value, aces) unless aces.empty?
@@ -219,8 +251,8 @@ class Dealer < Participant
 end
 
 class Deck
-  SUITS = %w(Spades Clubs Hearts Diamonds).freeze
-  RANK = %w(Ace 2 3 4 5 6 7 8 9 10 Jack Queen King).freeze
+  SUITS = %w(♠ ♥ ♣ ♦).freeze
+  RANK = %w(A 2 3 4 5 6 7 8 9 10 J Q K).freeze
 
   attr_accessor :cards
 
