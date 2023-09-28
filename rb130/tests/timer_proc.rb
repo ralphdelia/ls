@@ -1,4 +1,4 @@
-def timer()
+def timer
   start = Time.new
 
   Proc.new {Time.new - start}
