@@ -1,29 +1,22 @@
-=begin
-find the multiples using 
-
-if we are give multiples use them 
-else use 3 and 5 
-  
-
-  to method 
-  a limiting value 
-  calcuates the multiples of the provide / default list 
-
-  calculate the using the multiples upto but not including the limiting value 
-  then sum them and return 
-
-=end
-
-
 class SumOfMultiples
   attr_reader :set
   def initialize(*args)
-    @set = args.empty? ? [3, 5] : args
+    @set =  args
   end
 
   def to(limit)
+    self.class.to(limit, @set)
+  end
+  
+  def self.to(limit, set=[3, 5])
+    multiples = []
+    set.min.upto(limit - 1) do |num|
+      if set.any? {|multiple| num % multiple == 0}
+        multiples << num
+      end
+    end
+
+    multiples.sum
   end
   
 end
-
-
