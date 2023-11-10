@@ -1,0 +1,13 @@
+<h1><%= @name %></h1>
+
+<h3>Email:</h3>
+<p><%= @email %></p>
+<h3>Interests:</h3>
+<p><%= comma_format(@interests) %></p>
+<ul>
+<% @other_users.each do |user| %>
+  <li>
+      <a href="/user/<%= user %>" ><%= user %></a>
+    </li>
+<% end %>
+</ul>
