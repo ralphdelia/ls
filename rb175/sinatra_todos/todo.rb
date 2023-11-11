@@ -2,6 +2,8 @@ require "sinatra"
 require "sinatra/reloader"
 require "tilt/erubis"
 require 'securerandom'
+require "sinatra/content_for"
+
 
 configure do 
   enable :sessions 
@@ -50,3 +52,10 @@ post '/lists' do
   end
 end
 
+get '/lists/:id' do 
+  id = params[:id].to_i
+  @list = session[:lists][id]
+
+
+  erb :list, layout: :layout
+end
