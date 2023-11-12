@@ -62,7 +62,7 @@ end
 
 get '/lists/:id/edit' do 
   id = params[:id].to_i
-  @list = session[:list][id]
+  @list = session[:lists][id]
 
   erb :edit_list, layout: :layout
 end
@@ -70,7 +70,7 @@ end
 post "/lists/:id" do
   list_name = params[:list_name].strip
   id = params[:id].to_i
-  @list = session[:list][id]
+  @list = session[:lists][id]
 
   error = error_for_list_name(list_name)
   if error
