@@ -2,15 +2,24 @@
   <header>
     <h2><%= @list[:name] %></h2>
     <ul>
+      <li>
+        <form action="" method="post">
+          <button class="check" type="submit">Complete All</button>
+        </form>
+      </li>
       <li><a class='edit' href="/lists/<%= @list_id %>/edit">Edit List</a></li>
     </ul>
   </header>
 
   <ul>
     <% @list[:todos].each_with_index do |todo, index| %>
-    <li class='complete'>
-      <form action="" method="post" class="check">
-        <input type="hidden" name="completed" value="" />
+    <% if todo[:completed] %>
+      <li class='complete'>
+    <% else %>
+      <li>
+    <% end %>  
+      <form action="/lists/<%= @list_id %>/todos/<%= index %>" method="post" class="check">
+        <input type="hidden" name="completed" value="<%= !todo[:completed] %>" />
         <button type="submit" >Complete</button>
       </form>
 
