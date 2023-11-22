@@ -1,9 +1,9 @@
     <% if session[:error] %>
-      <p>
+      <p class="message">
         <%= session.delete(:error) %>
       </p>
     <% elsif session[:success] %>
-      <p>
+      <p class="message">
         <%= session.delete(:success)%>
       </p>
     <% end %>
@@ -11,12 +11,10 @@
     <ul>
       <% @files.each do |file|%>
         <li>
-          <a href="/<%= file %>">
-            <%= file %>
-          </a>
-          <a href="/<%= file %>/edit">
-            edit 
-          </a>
+          <a href="/<%= file %>"><%= file %></a>
+          <a href="/<%= file %>/edit">edit</a>
         </li>
       <% end %>
     </ul>
+    <br>
+    <a href="/new">New Document</a>

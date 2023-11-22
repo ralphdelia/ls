@@ -4,6 +4,7 @@ require "tilt/erubis"
 require 'securerandom'
 require "sinatra/content_for"
 require 'redcarpet'
+require 'fileutils'
 
 configure do 
   enable :sessions 
@@ -20,6 +21,15 @@ def data_path
   end
 end
 
+def return_filename_error(filename)
+  if filename.strip == ""
+    'A name is required'
+  elsif File.extname(filename).size < 1
+    "Please add a file extension."
+  end
+end
+
+
 get '/' do 
   pattern = File.join(data_path, "*")
   @files = Dir.glob(pattern).map {|path| File.basename(path) }
@@ -27,6 +37,25 @@ get '/' do
   erb :index, layout: :layout
 end
 
+get '/new' do 
+  erb :new, layout: :layout
+end
+ 
+post '/create' do 
+  new_file = params[:new_file].strip
+  error = return_filename_error(new_file)
+
+  if error
+    session[:error] = error 
+    status 422
+    erb :new, layout: :layout
+  else
+    FileUtils.touch(File.join(data_path, new_file))
+    session[:success] = "#{new_file} has been created."
+    
+    redirect '/'
+  end
+end
 
 def render_markdown(file)
   markdown = Redcarpet::Markdown.new(Redcarpet::Render::HTML)
@@ -40,7 +69,7 @@ def load_file_content(path)
     headers['Content-Type'] = 'text/plain'
     content
   when '.md'
-    render_markdown(content)
+    erb render_markdown(content)
   end
 end
 
@@ -74,4 +103,7 @@ post '/:filename' do
   session[:success] = "#{filename} has been updated"
   redirect '/'
 end
+
+
 __END__
+
