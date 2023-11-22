@@ -2,6 +2,10 @@
       <p>
         <%= session.delete(:error) %>
       </p>
+    <% elsif session[:success] %>
+      <p>
+        <%= session.delete(:success)%>
+      </p>
     <% end %>
 
     <ul>
@@ -9,6 +13,9 @@
         <li>
           <a href="/<%= file %>">
             <%= file %>
+          </a>
+          <a href="/<%= file %>/edit">
+            edit 
           </a>
         </li>
       <% end %>

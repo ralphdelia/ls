@@ -1,2 +1,1 @@
-##Ruby is...
-A dynamic, open source programming language. 
+Ruby is... updatedmic, open source programming languagee. fasdff
