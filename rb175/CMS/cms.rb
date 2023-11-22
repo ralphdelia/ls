@@ -57,6 +57,14 @@ post '/create' do
   end
 end
 
+post '/:filename/delete' do
+  path = File.join(data_path, params[:filename])
+  File.delete(path)
+
+  session[:success] = "#{params[:filename]} has been deleted."
+  redirect '/'
+end
+
 def render_markdown(file)
   markdown = Redcarpet::Markdown.new(Redcarpet::Render::HTML)
   markdown.render(file)
