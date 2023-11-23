@@ -1,0 +1,7 @@
+<% if session[:message] %>
+  <p class="message">
+    <%= session.delete(:message)%>
+  </p>
+<% end %>
+
+<a href="/user/signin">Sign In</a>

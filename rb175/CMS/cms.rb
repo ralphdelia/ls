@@ -29,16 +29,44 @@ def return_filename_error(filename)
   end
 end
 
-
 get '/' do 
-  pattern = File.join(data_path, "*")
-  @files = Dir.glob(pattern).map {|path| File.basename(path) }
 
-  erb :index, layout: :layout
+  if session[:username]
+    pattern = File.join(data_path, "*")
+    @files = Dir.glob(pattern).map { |path| File.basename(path) }
+    erb :index, layout: :layout
+  else 
+    pattern = File.join(data_path, "*")
+    @files = Dir.glob(pattern).map { |path| File.basename(path) }
+    erb :index, layout: :layout 
+  end 
+end
+
+get '/users/signin' do
+  erb :signin, layout: :layout
 end
 
 get '/new' do 
   erb :new, layout: :layout
+end
+
+post "/users/signin" do
+  if params[:username] == "admin" && params[:password] == "secret"
+    session[:username] = params[:username]
+    session[:message] = "Welcome"
+    redirect "/"
+  else
+    session[:message] = "Invalid credentials"
+    status 422
+    erb :signin
+  end
+end
+
+post '/users/signout' do
+  session.delete(:username)
+  session[:message] = 'You have been signed out'
+
+  redirect '/'
 end
  
 post '/create' do 
@@ -46,12 +74,12 @@ post '/create' do
   error = return_filename_error(new_file)
 
   if error
-    session[:error] = error 
+    session[:message] = error 
     status 422
     erb :new, layout: :layout
   else
     FileUtils.touch(File.join(data_path, new_file))
-    session[:success] = "#{new_file} has been created."
+    session[:message] = "#{new_file} has been created."
     
     redirect '/'
   end
@@ -61,7 +89,7 @@ post '/:filename/delete' do
   path = File.join(data_path, params[:filename])
   File.delete(path)
 
-  session[:success] = "#{params[:filename]} has been deleted."
+  session[:message] = "#{params[:filename]} has been deleted."
   redirect '/'
 end
 
@@ -88,7 +116,7 @@ get '/:filename' do
   if File.exist?(file_path)
     load_file_content(file_path)
   else
-    session[:error] = "#{filename} does not exist"
+    session[:message] = "#{filename} does not exist"
     redirect '/'
   end
 end
@@ -108,7 +136,7 @@ post '/:filename' do
   
   File.write(file_path, params[:content])
 
-  session[:success] = "#{filename} has been updated"
+  session[:message] = "#{filename} has been updated"
   redirect '/'
 end
 
