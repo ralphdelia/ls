@@ -1,6 +1,3 @@
-{
-  ralph: password,
-  bill: billbill,
-  admin: password
-}
-  
+---
+ralph: "$2a$12$kq0R3SS4pQ94wKa/OfFrOuOjoSqtl5Ymtfq2wZOsyKIqZ/2.p2dNq"
+something: "$2a$12$dZD.f7WIMVRLGDVDePg/QuTZVNM7gxEvjb5k5HtIVj1qQI1gBmXyi"

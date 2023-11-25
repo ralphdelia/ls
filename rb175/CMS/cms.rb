@@ -6,12 +6,12 @@ require "sinatra/content_for"
 require 'redcarpet'
 require 'fileutils'
 require 'yaml'
+require 'bcrypt'
 
 configure do 
   enable :sessions 
   set :session_secret, SecureRandom.hex(32)
 end
-
 
 root = File.expand_path("..", __FILE__)
 
@@ -23,13 +23,16 @@ def data_path
   end
 end
 
-def return_users
-  path = if ENV["RACK_ENV"] == "test"
+def parent_path_of_file
+  if ENV["RACK_ENV"] == "test"
     File.expand_path("../test", __FILE__)
   else
     File.expand_path("../", __FILE__)
   end
-  YAML.load_file(File.join(path, 'users.yml'))
+end
+
+def return_users
+  YAML.load_file(File.join(parent_path_of_file, 'users.yml'))
 end
 
 def return_filename_error(filename)
@@ -37,6 +40,8 @@ def return_filename_error(filename)
     'A name is required'
   elsif File.extname(filename).size < 1
     "Please add a file extension."
+  elsif %w(.txt .md).none?(File.extname(filename))
+    'We only support .txt and .md files.'
   end
 end
 
@@ -71,12 +76,73 @@ get '/new' do
   erb :new, layout: :layout
 end
 
+def authenticate_password?(username, password)
+  users = return_users
+  
+  if users.key?(username)
+    bcrypt_password = BCrypt::Password.new(users[username])
+    bcrypt_password == password
+  else
+    false
+  end
+end
+
+get '/signup' do
+  erb :signup, layout: :layout
+end
+
+def save_user_credentials(username, password)
+  users_file_path = File.join(parent_path_of_file, "users.yml")
+
+  users = YAML.load_file(users_file_path)
+  users[username] = BCrypt::Password.create(password).to_s
+ 
+  File.open(users_file_path, 'w') do |file|
+    file.write(users.to_yaml)
+  end
+end
+
+def validate_signup_username(username)
+  if return_users.keys.any?(username)
+    'That username has already been taken.'
+  elsif username == ""
+    "Thats not a valid username"
+  end 
+end
+
+
+post '/signup' do
+  username = params[:username].strip
+  error = validate_signup_username(username)
+  if error
+    session[:message] = error
+    erb :signup, layout: :layout
+  else
+    save_user_credentials(username, params[:password])
+    session[:message] = 'You have successfully created an account.'
+    redirect '/'
+  end 
+end
+
+
+post "/:filename/duplicate" do
+  redirect_to_index if user_not_logged_in?
+  filename = params[:filename]
+  file_path = File.join(data_path, filename)
+  
+  file_copy = filename.sub(/(?=\.[^.]+$)/, '_copy')
+  file_copy_path = File.join(data_path, file_copy)
+
+  FileUtils.cp(file_path, file_copy_path)
+  
+  redirect '/'
+end
+
 post "/users/signin" do
   username = params[:username]
   password = params[:password]
-  users = return_users
   
-  if users.key?(username) && users[username] == password
+  if authenticate_password?(username, password) 
     session[:username] = username
     session[:message] = "Welcome"
     redirect "/"
