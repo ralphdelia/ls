@@ -1,0 +1,30 @@
+
+<% if session[:message] %>
+  <p class="message">
+    <%= session.delete(:message) %>
+  </p>
+<% end %>
+<% if @main_image %>
+  <img src='<%= @main_image.first || main_image %>'>
+<% end %>
+<br>
+<% if !@photos.empty? %>
+  <% @photos.each_with_index do |photo_path, index| %>
+    <% if index % 3 == 0 %>
+      <br>
+      <a href='/<%= File.basename(photo_path) %>'>
+      <img class='small' src='<%= photo_path %>'>
+      </a>
+    <% else %>
+      <a href='/<%= File.basename(photo_path) %>'>
+      <img class='small' src='<%= photo_path %>'> 
+      </a>
+    <% end %>
+  <% end %>
+<% end %>
+
+<form action="/uploadphoto" enctype='multipart/form-data' method='post'>
+  <label for="img">Select image:</label>
+  <input type="file" id="img" name="img" accept="image/*">
+  <input type="submit">
+</form>
